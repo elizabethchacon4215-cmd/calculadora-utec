@@ -86,15 +86,6 @@ if raw_input:
                 'f(x)': [float(f_expr.subs(x, p)) for p in puntos_tabla]
             })
             st.dataframe(df.style.format("{:.2f}"), use_container_width=True)
-
-        # Sección de ayuda para el video
-        with st.expander("💡 Tips para tu defensa en el video"):
-            st.write(f"""
-            1. *Inyectividad:* Observa si la función cruza una línea horizontal solo una vez.
-            2. *Dominio:* Para f(x)={raw_input}, verifica si existen valores de X que den error (divisiones por cero).
-            3. *IA:* Menciona que la IA optimizó la librería SymPy para obtener resultados exactos.
-            """)
-
     except Exception as e:
         st.error(f"Error en la expresión. Revisa que esté bien escrita.")
 
