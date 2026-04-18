@@ -1,34 +1,50 @@
 import streamlit as st
 import numpy as np
 import plotly.graph_objects as go
-from sympy import symbols, simplify, solve, Lambda
+from sympy import symbols, simplify, solve
+import re
 
 st.set_page_config(page_title="Calculadora UTEC", layout="wide")
 st.title("🧮 Calculadora de Funciones - Matemática I")
 
-# Requerimiento: Ingreso de la función
-input_func = st.sidebar.text_input("Escribe tu función f(x):", "x**2 - 4*x + 3")
+# El "Traductor" para no usar asteriscos
+def limpiar_entrada(texto):
+    texto = texto.lower().replace(" ", "")
+    # Traduce x2 a x*2, x3 a x*3, etc.
+    texto = re.sub(r'x(\d+)', r'x**\1', texto)
+    # Traduce 2x a 2*x, 5x a 5*x, etc.
+    texto = re.sub(r'(\d+)x', r'\1*x', texto)
+    return texto
 
-if input_func:
+st.sidebar.header("Entrada de Datos")
+raw_input = st.sidebar.text_input("Escribe tu función (ej: x2 - 4x + 3):", "x2 - 4x + 3")
+
+if raw_input:
     try:
+        # Aplicamos la limpieza automática
+        input_func = limpiar_entrada(raw_input)
         x = symbols('x')
         f_expr = simplify(input_func)
         
-        # Requerimiento: Gráfico interactivo con ejes y escala
-        st.subheader("1. Gráfico de la Función")
+        st.subheader(f"Análisis de: f(x) = {raw_input}")
+        
+        # Gráfico
         x_vals = np.linspace(-10, 10, 400)
         f_num = [float(f_expr.subs(x, val)) for val in x_vals]
         fig = go.Figure()
-        fig.add_trace(go.Scatter(x=x_vals, y=f_num, name="f(x)"))
+        fig.add_trace(go.Scatter(x=x_vals, y=f_num, name="f(x)", line=dict(color='#0078D4', width=3)))
         fig.update_layout(xaxis_title="Eje X", yaxis_title="Eje Y")
         st.plotly_chart(fig)
 
-        # Requerimiento: Puntos de corte
-        st.subheader("2. Puntos de Corte")
-        cortes_x = solve(f_expr, x)
-        corte_y = f_expr.subs(x, 0)
-        st.write(f"*Cortes en X (Raíces):* {cortes_x}")
-        st.write(f"*Corte en Y:* (0, {corte_y})")
+        # Cortes
+        c1, c2 = st.columns(2)
+        with c1:
+            st.markdown("### 📍 Puntos de Corte")
+            st.write(f"*En X:* {solve(f_expr, x)}")
+            st.write(f"*En Y:* (0, {f_expr.subs(x, 0)})")
+        with c2:
+            st.markdown("### 📝 Info")
+            st.write("Análisis generado automáticamente para el Ciclo 01-2026.")
 
     except:
-        st.error("Error en el formato. Usa x**2 para potencias.")
+        st.error("Revisa la escritura. Ejemplo: 3x2 + 2x - 5")
