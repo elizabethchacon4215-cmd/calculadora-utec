@@ -1,50 +1,102 @@
 import streamlit as st
 import numpy as np
 import plotly.graph_objects as go
-from sympy import symbols, simplify, solve
+from sympy import symbols, simplify, solve, periodicity, is_increasing, is_decreasing
+import pandas as pd
 import re
 
-st.set_page_config(page_title="Calculadora UTEC", layout="wide")
-st.title("🧮 Calculadora de Funciones - Matemática I")
+# Configuración de página con estilo
+st.set_page_config(page_title="Analizador Pro UTEC", layout="wide", initial_sidebar_state="expanded")
 
-# El "Traductor" para no usar asteriscos
+# Estilo personalizado con CSS
+st.markdown("""
+    <style>
+    .main { background-color: #f5f7f9; }
+    .stTitle { color: #1E3A8A; font-family: 'Helvetica'; }
+    .stMetric { background-color: #ffffff; padding: 15px; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    </style>
+    """, unsafe_allow_html=True)
+
+st.title("🚀 Analizador de Funciones Inteligente - Ciclo 01-2026")
+st.markdown("---")
+
 def limpiar_entrada(texto):
     texto = texto.lower().replace(" ", "")
-    # Traduce x2 a x*2, x3 a x*3, etc.
     texto = re.sub(r'x(\d+)', r'x**\1', texto)
-    # Traduce 2x a 2*x, 5x a 5*x, etc.
     texto = re.sub(r'(\d+)x', r'\1*x', texto)
     return texto
 
-st.sidebar.header("Entrada de Datos")
-raw_input = st.sidebar.text_input("Escribe tu función (ej: x2 - 4x + 3):", "x2 - 4x + 3")
+# Sidebar mejorada
+st.sidebar.image("https://upload.wikimedia.org/wikipedia/commons/thumb/c/c3/Python-logo-notext.svg/1200px-Python-logo-notext.svg.png", width=50)
+st.sidebar.header("⚙️ Panel de Control")
+raw_input = st.sidebar.text_input("Ingresa tu función:", "x2 - 4x + 3")
+rango_x = st.sidebar.slider("Rango de visualización (Eje X):", -50, 50, (-10, 10))
 
 if raw_input:
     try:
-        # Aplicamos la limpieza automática
         input_func = limpiar_entrada(raw_input)
         x = symbols('x')
         f_expr = simplify(input_func)
         
-        st.subheader(f"Análisis de: f(x) = {raw_input}")
-        
-        # Gráfico
-        x_vals = np.linspace(-10, 10, 400)
-        f_num = [float(f_expr.subs(x, val)) for val in x_vals]
-        fig = go.Figure()
-        fig.add_trace(go.Scatter(x=x_vals, y=f_num, name="f(x)", line=dict(color='#0078D4', width=3)))
-        fig.update_layout(xaxis_title="Eje X", yaxis_title="Eje Y")
-        st.plotly_chart(fig)
+        # Layout de columnas
+        col_graf, col_data = st.columns([2, 1])
 
-        # Cortes
-        c1, c2 = st.columns(2)
-        with c1:
-            st.markdown("### 📍 Puntos de Corte")
-            st.write(f"*En X:* {solve(f_expr, x)}")
-            st.write(f"*En Y:* (0, {f_expr.subs(x, 0)})")
-        with c2:
-            st.markdown("### 📝 Info")
-            st.write("Análisis generado automáticamente para el Ciclo 01-2026.")
+        with col_graf:
+            st.subheader("📊 Gráfica Interactiva Profesional")
+            x_vals = np.linspace(rango_x[0], rango_x[1], 500)
+            # Manejo de errores en evaluación numérica para asíntotas
+            f_num = []
+            for val in x_vals:
+                try:
+                    res = float(f_expr.subs(x, val))
+                    f_num.append(res)
+                except:
+                    f_num.append(None)
+            
+            fig = go.Figure()
+            fig.add_trace(go.Scatter(x=x_vals, y=f_num, name="f(x)", line=dict(color='#2563EB', width=4)))
+            fig.update_layout(
+                template="plotly_white",
+                xaxis=dict(title="Eje X (Dominio)", showgrid=True, zeroline=True, zerolinewidth=2, zerolinecolor='black'),
+                yaxis=dict(title="Eje Y (Rango)", showgrid=True, zeroline=True, zerolinewidth=2, zerolinecolor='black'),
+                margin=dict(l=20, r=20, t=20, b=20)
+            )
+            st.plotly_chart(fig, use_container_width=True)
 
-    except:
-        st.error("Revisa la escritura. Ejemplo: 3x2 + 2x - 5")
+        with col_data:
+            st.subheader("🔍 Análisis Matemático")
+            
+            # Cortes
+            cortes_x = solve(f_expr, x)
+            corte_y = f_expr.subs(x, 0)
+            
+            st.info(f"*Función Simplificada:* ${f_expr}$")
+            
+            st.markdown("---")
+            st.write("*📍 Puntos Críticos:*")
+            st.success(f"Cortes en X: {cortes_x}")
+            st.success(f"Corte en Y: {corte_y}")
+            
+            # Tabla de valores rápida
+            st.markdown("---")
+            st.write("*📋 Tabla de Muestreo:*")
+            puntos_tabla = np.linspace(rango_x[0], rango_x[1], 10)
+            df = pd.DataFrame({
+                'x': puntos_tabla,
+                'f(x)': [float(f_expr.subs(x, p)) for p in puntos_tabla]
+            })
+            st.dataframe(df.style.format("{:.2f}"), use_container_width=True)
+
+        # Sección de ayuda para el video
+        with st.expander("💡 Tips para tu defensa en el video"):
+            st.write(f"""
+            1. *Inyectividad:* Observa si la función cruza una línea horizontal solo una vez.
+            2. *Dominio:* Para f(x)={raw_input}, verifica si existen valores de X que den error (divisiones por cero).
+            3. *IA:* Menciona que la IA optimizó la librería SymPy para obtener resultados exactos.
+            """)
+
+    except Exception as e:
+        st.error(f"Error en la expresión. Revisa que esté bien escrita.")
+
+st.sidebar.markdown("---")
+st.sidebar.caption("Proyecto UTEC - Matemática I")
